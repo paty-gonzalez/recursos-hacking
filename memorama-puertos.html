@@ -1,0 +1,291 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Memorama de Puertos</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=IBM+Plex+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: tablero de cartas a pantalla completa para proyector; marcador de equipos arriba, ficha del puerto en modal al hacer pareja. Look único oscuro (terminal + calabaza). */
+:root {
+  color-scheme: dark;
+  --bg: #15171c;
+  --panel: #1f232b;
+  --line: #333a46;
+  --fg: #eef0f3;
+  --muted: #9aa3b2;
+  --accent: #e8731a;
+  --accent-soft: #f6c28b;
+  --ok: #3fb950;
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", "Courier New", monospace;
+  --t1: #e8731a; --t2: #4c8bf5; --t3: #3fb950; --t4: #d94f9a; --t5: #e5c033; --t6: #9b6bf2;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-display);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 14px;
+}
+.wrap { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; min-height: 100%; }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; justify-content: space-between; }
+.brand { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+.brand h1 { margin: 0; font-size: clamp(1.3rem, 2.4vw, 2rem); font-weight: 800; letter-spacing: -0.01em; text-wrap: balance; }
+.brand .prompt { font-family: var(--font-mono); color: var(--accent); font-size: clamp(0.85rem, 1.3vw, 1rem); }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+button { font: inherit; cursor: pointer; }
+.btn { background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; font-weight: 600; font-size: 0.95rem; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #1a1205; }
+.btn:focus-visible, .card:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 2px; }
+
+.teams { display: flex; flex-wrap: wrap; gap: 10px; }
+.team { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-radius: 10px; background: var(--panel); border: 2px solid transparent; transition: border-color .2s, transform .2s; }
+.team .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--c); }
+.team .name { font-weight: 600; font-size: 1rem; }
+.team .score { font-family: var(--font-mono); font-weight: 700; font-size: 1.3rem; font-variant-numeric: tabular-nums; color: var(--c); min-width: 2ch; text-align: right; }
+.team.turn { border-color: var(--c); transform: translateY(-2px); }
+.turnline { font-size: clamp(1rem, 1.6vw, 1.25rem); color: var(--muted); }
+.turnline strong { color: var(--fg); }
+
+.board { display: grid; gap: clamp(6px, 0.9vw, 12px); grid-template-columns: repeat(var(--cols, 8), minmax(0, 1fr)); flex: 1; align-content: start; }
+.card { position: relative; aspect-ratio: 4 / 3; border: none; padding: 0; background: transparent; perspective: 800px; min-width: 0; }
+.inner { position: absolute; inset: 0; transition: transform .45s cubic-bezier(.3,.7,.2,1); transform-style: preserve-3d; }
+.card.up .inner, .card.done .inner { transform: rotateY(180deg); }
+.face { position: absolute; inset: 0; border-radius: 10px; backface-visibility: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px 8px; text-align: center; overflow: hidden; }
+.back { background: var(--panel); border: 1px solid var(--line); color: var(--line); font-family: var(--font-mono); font-size: clamp(0.9rem, 1.6vw, 1.4rem); font-weight: 700; }
+.back::before { content: ":?"; color: var(--accent); opacity: .55; }
+.card:hover .back { border-color: var(--accent); }
+.front { transform: rotateY(180deg); background: #262b35; border: 2px solid var(--line); }
+.front .num { font-family: var(--font-mono); font-weight: 700; font-size: clamp(1.4rem, 3.2vw, 2.8rem); color: var(--accent); line-height: 1; }
+.front .proto { font-family: var(--font-mono); font-size: clamp(0.6rem, 0.9vw, 0.8rem); color: var(--muted); margin-top: 4px; letter-spacing: .06em; }
+.front .svc { font-weight: 800; font-size: clamp(0.85rem, 1.5vw, 1.25rem); line-height: 1.1; }
+.front .clue { font-size: clamp(0.62rem, 0.95vw, 0.85rem); color: var(--muted); margin-top: 4px; line-height: 1.2; }
+.card.done .front { border-color: var(--owner); background: color-mix(in srgb, var(--owner) 16%, #262b35); }
+.card.done { cursor: default; }
+.card.miss .front { border-color: #d94f4f; }
+
+.overlay { position: fixed; inset: 0; background: rgba(8,9,12,.72); display: flex; align-items: center; justify-content: center; padding: 20px max(16px, env(safe-area-inset-left, 0px)); z-index: 10; }
+.modal { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 26px; max-width: 560px; width: 100%; display: flex; flex-direction: column; gap: 14px; }
+.modal .big { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.modal .big .num { font-family: var(--font-mono); font-size: 3rem; font-weight: 700; color: var(--accent); }
+.modal .big .svc { font-size: 1.8rem; font-weight: 800; }
+.modal .label { text-transform: uppercase; font-size: .75rem; letter-spacing: .1em; color: var(--muted); }
+.modal p { margin: 0; font-size: 1.1rem; line-height: 1.45; }
+.modal .who { font-weight: 600; color: var(--ok); }
+.setup label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
+.setup select, .setup input { font: inherit; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.setup .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.names { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+footer { color: var(--muted); font-size: .85rem; }
+
+@media (max-width: 720px) {
+  .board { --cols: 4 !important; }
+  .setup .row { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .inner, .team { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <span class="prompt">$ nmap --top-ports</span>
+      <h1>Memorama de puertos</h1>
+    </div>
+    <div class="actions">
+      <button class="btn" id="btn-skip" type="button">Pasar turno</button>
+      <button class="btn primary" id="btn-new" type="button">Nueva partida</button>
+    </div>
+  </header>
+  <div class="teams" id="teams"></div>
+  <div class="turnline" id="turnline"></div>
+  <main class="board" id="board" aria-label="Tablero"></main>
+  <footer>Une cada número de puerto con su servicio. Si aciertas, tu equipo sigue; si fallas, pasa el turno.</footer>
+</div>
+
+<div class="overlay" id="match" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="m-svc">
+    <div class="who" id="m-who"></div>
+    <div class="big"><span class="num" id="m-num"></span><span class="svc" id="m-svc"></span></div>
+    <div><div class="label">Para qué sirve</div><p id="m-what"></p></div>
+    <div><div class="label">Qué busca el pentester</div><p id="m-why"></p></div>
+    <div class="modal-actions"><button class="btn primary" id="m-ok" type="button">Seguir jugando</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="setup" hidden>
+  <form class="modal setup" id="setup-form">
+    <div class="big"><span class="svc">Nueva partida</span></div>
+    <div class="row">
+      <label for="s-teams">Equipos
+        <select id="s-teams"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select>
+      </label>
+      <label for="s-level">Puertos en juego
+        <select id="s-level">
+          <option value="8">8 · los imprescindibles</option>
+          <option value="12" selected>12 · intermedio</option>
+          <option value="16">16 · todos</option>
+        </select>
+      </label>
+    </div>
+    <div class="label">Nombres de equipo (opcional)</div>
+    <div class="names" id="s-names"></div>
+    <div class="modal-actions">
+      <button class="btn" type="button" id="s-cancel">Cancelar</button>
+      <button class="btn primary" type="submit">Repartir cartas</button>
+    </div>
+  </form>
+</div>
+
+<div class="overlay" id="end" hidden>
+  <div class="modal">
+    <div class="big"><span class="svc">¡Tablero limpio!</span></div>
+    <p id="e-text"></p>
+    <div class="modal-actions"><button class="btn primary" id="e-new" type="button">Otra partida</button></div>
+  </div>
+</div>
+
+<script>
+// Orden = prioridad: los primeros 8 son los imprescindibles
+const PORTS = [
+  { n: "22", p: "TCP", s: "SSH", c: "La puerta blindada del admin", w: "Administrar un servidor de forma remota y cifrada.", y: "Contraseñas débiles o versiones viejas." },
+  { n: "80", p: "TCP", s: "HTTP", c: "La web sin candado", w: "Servir páginas web sin cifrar.", y: "La puerta a la U3: aplicaciones web vulnerables y paneles de administración." },
+  { n: "443", p: "TCP", s: "HTTPS", c: "La web con candado", w: "Servir páginas web cifradas con TLS.", y: "El cifrado protege el canal, no la aplicación: la web puede seguir siendo vulnerable." },
+  { n: "21", p: "TCP", s: "FTP", c: "Archivos en texto plano", w: "Transferir archivos entre equipos.", y: "Credenciales en texto plano y acceso anónimo." },
+  { n: "23", p: "TCP", s: "Telnet", c: "El abuelito que grita tu contraseña", w: "Administración remota sin cifrar, el antecesor de SSH.", y: "Todo viaja en claro. Verlo abierto hoy ya es un hallazgo." },
+  { n: "53", p: "TCP/UDP", s: "DNS", c: "Traduce nombres a IPs", w: "Resolver nombres de dominio a direcciones IP.", y: "Transferencias de zona mal configuradas que revelan la red completa." },
+  { n: "445", p: "TCP", s: "SMB", c: "Carpetas compartidas de Windows", w: "Compartir archivos e impresoras en redes Windows.", y: "Fallas como EternalBlue (WannaCry). Nunca debería verse desde internet." },
+  { n: "3389", p: "TCP", s: "RDP", c: "Escritorio remoto de Windows", w: "Controlar un equipo Windows a distancia.", y: "Favorito del ransomware; fallas como BlueKeep. Riesgo alto si está expuesto." },
+  { n: "25", p: "TCP", s: "SMTP", c: "El que reparte el correo", w: "Enviar correo entre servidores.", y: "Relay abierto y enumeración de usuarios." },
+  { n: "3306", p: "TCP", s: "MySQL", c: "La base de datos del LAMP", w: "Base de datos relacional muy común en web.", y: "Expuesta a internet con contraseñas débiles = fuga de datos." },
+  { n: "8080", p: "TCP", s: "HTTP-alt", c: "El servidor de desarrollo olvidado", w: "Web alterna: desarrollo, proxies, paneles.", y: "Paneles de administración con credenciales por defecto." },
+  { n: "161", p: "UDP", s: "SNMP", c: "El chismoso de la red", w: "Monitorear routers, switches e impresoras.", y: "Comunidades por defecto como \"public\" que filtran la configuración." },
+  { n: "110", p: "TCP", s: "POP3", c: "Baja tu correo y lo borra", w: "Descargar correo al equipo.", y: "Credenciales en claro. La versión segura usa el 995." },
+  { n: "143", p: "TCP", s: "IMAP", c: "El correo que vive en la nube", w: "Leer correo guardado en el servidor.", y: "Credenciales en claro. La versión segura usa el 993." },
+  { n: "5432", p: "TCP", s: "PostgreSQL", c: "El elefante", w: "Base de datos relacional.", y: "Igual que MySQL: no debería verse desde afuera." },
+  { n: "6379", p: "TCP", s: "Redis", c: "La caché sin contraseña", w: "Base de datos en memoria usada como caché.", y: "Instalaciones sin autenticación que dejan leer y escribir datos." },
+];
+const TEAM_COLORS = ["--t1", "--t2", "--t3", "--t4", "--t5", "--t6"];
+
+let S;
+const $ = (id) => document.getElementById(id);
+
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+function newGame(nTeams, pairs, names) {
+  const ports = PORTS.slice(0, pairs);
+  const cards = [];
+  ports.forEach((pt, i) => { cards.push({ id: i, kind: "num" }); cards.push({ id: i, kind: "svc" }); });
+  S = {
+    pairs, ports: ports.map(p => p.n),
+    teams: Array.from({ length: nTeams }, (_, i) => ({ name: (names && names[i]) || `Equipo ${i + 1}`, score: 0 })),
+    turn: 0, deck: shuffle(cards).map(c => ({ ...c, state: "down", owner: null })),
+    up: [], lock: false,
+  };
+  render();
+}
+
+function portOf(card) { return PORTS.find(p => p.n === S.ports[card.id]); }
+
+function render() {
+  const teams = $("teams"); teams.innerHTML = "";
+  S.teams.forEach((t, i) => {
+    const el = document.createElement("div");
+    el.className = "team" + (i === S.turn ? " turn" : "");
+    el.style.setProperty("--c", `var(${TEAM_COLORS[i]})`);
+    el.innerHTML = `<span class="dot"></span><span class="name"></span><span class="score">${t.score}</span>`;
+    el.querySelector(".name").textContent = t.name;
+    teams.appendChild(el);
+  });
+  $("turnline").innerHTML = `Turno de <strong></strong>: pasa alguien a elegir dos cartas.`;
+  $("turnline").querySelector("strong").textContent = S.teams[S.turn].name;
+  const board = $("board");
+  board.style.setProperty("--cols", S.deck.length <= 16 ? 8 : 8);
+  board.innerHTML = "";
+  S.deck.forEach((c, idx) => {
+    const pt = portOf(c);
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "card" + (c.state === "up" ? " up" : "") + (c.state === "done" ? " done" : "") + (c.state === "miss" ? " up miss" : "");
+    if (c.owner !== null) b.style.setProperty("--owner", `var(${TEAM_COLORS[c.owner]})`);
+    b.setAttribute("aria-label", c.state === "down" ? `Carta ${idx + 1}, boca abajo` : (c.kind === "num" ? `Puerto ${pt.n}` : `Servicio ${pt.s}`));
+    const front = c.kind === "num"
+      ? `<span class="num">${pt.n}</span><span class="proto">${pt.p}</span>`
+      : `<span class="svc"></span><span class="clue"></span>`;
+    b.innerHTML = `<span class="inner"><span class="face back"></span><span class="face front">${front}</span></span>`;
+    if (c.kind === "svc") { b.querySelector(".svc").textContent = pt.s; b.querySelector(".clue").textContent = pt.c; }
+    b.addEventListener("click", () => flip(idx));
+    board.appendChild(b);
+  });
+}
+
+function flip(idx) {
+  const c = S.deck[idx];
+  if (S.lock || c.state !== "down" || S.up.length >= 2) return;
+  c.state = "up"; S.up.push(idx); render();
+  if (S.up.length === 2) {
+    const [a, b] = S.up.map(i => S.deck[i]);
+    if (a.id === b.id && a.kind !== b.kind) {
+      a.state = b.state = "done"; a.owner = b.owner = S.turn;
+      S.teams[S.turn].score++; S.up = []; render(); showMatch(a);
+    } else {
+      S.lock = true; a.state = b.state = "miss"; render();
+      setTimeout(() => { a.state = b.state = "down"; S.up = []; S.lock = false; nextTurn(); }, 1600);
+    }
+  }
+}
+
+function nextTurn() { S.turn = (S.turn + 1) % S.teams.length; render(); }
+
+function showMatch(card) {
+  const pt = portOf(card);
+  $("m-who").textContent = `+1 para ${S.teams[S.turn].name}`;
+  $("m-num").textContent = pt.n; $("m-svc").textContent = pt.s;
+  $("m-what").textContent = pt.w; $("m-why").textContent = pt.y;
+  $("match").hidden = false; $("m-ok").focus();
+}
+$("m-ok").addEventListener("click", () => {
+  $("match").hidden = true;
+  if (S.deck.every(c => c.state === "done")) {
+    const max = Math.max(...S.teams.map(t => t.score));
+    const winners = S.teams.filter(t => t.score === max).map(t => t.name);
+    $("e-text").textContent = `${winners.join(" y ")} ${winners.length > 1 ? "empatan" : "gana"} con ${max} pareja${max === 1 ? "" : "s"}. ¡Stickers para quienes pasaron a la pantalla!`;
+    $("end").hidden = false;
+  }
+});
+
+$("btn-skip").addEventListener("click", () => { if (!S.lock && S.up.length === 0) nextTurn(); });
+
+function openSetup() {
+  const n = Number($("s-teams").value);
+  const box = $("s-names"); box.innerHTML = "";
+  for (let i = 0; i < n; i++) {
+    const inp = document.createElement("input");
+    inp.id = `s-name-${i}`; inp.placeholder = `Equipo ${i + 1}`; inp.setAttribute("aria-label", `Nombre del equipo ${i + 1}`);
+    if (S.teams[i] && !/^Equipo \d+$/.test(S.teams[i].name)) inp.value = S.teams[i].name;
+    box.appendChild(inp);
+  }
+  $("setup").hidden = false;
+}
+$("btn-new").addEventListener("click", openSetup);
+$("e-new").addEventListener("click", () => { $("end").hidden = true; openSetup(); });
+$("s-teams").addEventListener("change", openSetup);
+$("s-cancel").addEventListener("click", () => { $("setup").hidden = true; });
+$("setup-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const n = Number($("s-teams").value);
+  const names = Array.from({ length: n }, (_, i) => ($(`s-name-${i}`)?.value || "").trim());
+  $("setup").hidden = true;
+  newGame(n, Number($("s-level").value), names);
+});
+
+// Conserva la partida si la página se actualiza mientras está abierta
+function start(data) {
+  if (data && data.S) { S = data.S; S.lock = false; S.deck.forEach(c => { if (c.state === "miss" || c.state === "up") c.state = "down"; }); S.up = []; render(); }
+  else newGame(4, 12);
+}
+window.claude?.hot?.snapshot?.(() => ({ S }));
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+
+</body></html>
