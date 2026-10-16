@@ -1,0 +1,530 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Docker paso a paso</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one guided column; sticky bar with progress + section pills; steps as checkable cards; route switch drives Part 2/3 */
+:root{
+  --bg:#F5F8FD; --surface:#FFFFFF; --ink:#0B214A; --muted:#51607A; --line:#D8E2F0;
+  --accent:#1D63ED; --accent-soft:#E5F0FE; --sky:#2496ED;
+  --term:#0A1A3A; --term-ink:#E6EDF8; --term-dim:#7F93B5; --term-ip:#FCB13B;
+  --ubuntu:#1D63ED; --kali:#D1495B; --kali-soft:#FBE9EC;
+  --ok:#14805E; --ok-soft:#E3F4EE; --warn:#A35A06; --warn-soft:#FFF3E0;
+  --display:"Bricolage Grotesque", "Figtree", system-ui, sans-serif;
+  --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#071430; --surface:#0E1F44; --ink:#E7EEFA; --muted:#9DB0CF; --line:#22375F;
+  --accent:#5B93FF; --accent-soft:#16305F; --sky:#4CB0FF;
+  --term:#040C20; --term-ink:#E6EDF8; --term-dim:#6F86AD; --term-ip:#FCB13B;
+  --ubuntu:#5B93FF; --kali:#F07686; --kali-soft:#3A1C2A;
+  --ok:#4FD1A1; --ok-soft:#0F3A30; --warn:#F5B35C; --warn-soft:#3A2A12; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#071430; --surface:#0E1F44; --ink:#E7EEFA; --muted:#9DB0CF; --line:#22375F;
+  --accent:#5B93FF; --accent-soft:#16305F; --sky:#4CB0FF;
+  --term:#040C20; --term-ink:#E6EDF8; --term-dim:#6F86AD; --term-ip:#FCB13B;
+  --ubuntu:#5B93FF; --kali:#F07686; --kali-soft:#3A1C2A;
+  --ok:#4FD1A1; --ok-soft:#0F3A30; --warn:#F5B35C; --warn-soft:#3A2A12; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:760px;margin:0 auto}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
+p{margin:0}
+code{font-family:var(--mono);font-size:.88em;background:var(--accent-soft);color:var(--ink);padding:.1em .4em;border-radius:6px;overflow-wrap:anywhere}
+a{color:var(--accent)}
+:focus-visible{outline:3px solid var(--sky);outline-offset:2px;border-radius:6px}
+
+/* Hero */
+.hero{padding-block:32px 20px;display:grid;gap:14px}
+.eyebrow{font-size:.78rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.hero h1{font-size:clamp(2rem,6vw,2.9rem);font-weight:800;letter-spacing:-.02em}
+.hero p{color:var(--muted);max-width:60ch}
+.stack{display:flex;gap:6px;align-items:flex-end;height:40px}
+.stack span{width:44px;border-radius:5px;background:repeating-linear-gradient(90deg,var(--accent) 0 7px,color-mix(in srgb,var(--accent) 75%,#fff) 7px 9px)}
+.stack span:nth-child(1){height:24px}.stack span:nth-child(2){height:36px;background:repeating-linear-gradient(90deg,var(--sky) 0 7px,color-mix(in srgb,var(--sky) 75%,#fff) 7px 9px)}
+.stack span:nth-child(3){height:30px;background:repeating-linear-gradient(90deg,var(--ink) 0 7px,color-mix(in srgb,var(--ink) 70%,#fff) 7px 9px)}
+
+/* Sticky bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:10px 12px;display:grid;gap:8px;box-shadow:0 6px 20px -14px rgba(11,33,74,.45)}
+.progress-row{display:flex;align-items:center;gap:10px;font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.meter{flex:1;height:8px;background:var(--accent-soft);border-radius:99px;overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:var(--accent);border-radius:99px;transition:width .3s}
+.pills{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.pills::-webkit-scrollbar{display:none}
+.pills a{flex:none;text-decoration:none;color:var(--ink);font-weight:600;font-size:.85rem;padding:6px 12px;border-radius:99px;border:1px solid var(--line);background:var(--bg)}
+.pills a:hover{border-color:var(--accent)}
+
+/* Sections */
+section{padding-block:28px 4px;scroll-margin-top:110px}
+.sec-head{display:flex;gap:12px;align-items:baseline;margin-bottom:6px}
+.sec-num{font-family:var(--display);font-weight:800;color:var(--accent);font-size:1.1rem}
+.sec-head h2{font-size:1.55rem;font-weight:800}
+.lead{color:var(--muted);margin-bottom:16px;max-width:62ch}
+
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.note{background:var(--accent-soft);border-radius:var(--r);padding:14px 16px;display:grid;gap:6px;font-size:.95rem}
+.note strong{font-family:var(--display)}
+
+/* VM tags */
+.vm{display:inline-flex;align-items:center;gap:6px;font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px 3px 8px;border-radius:99px}
+.vm::before{content:"";width:8px;height:8px;border-radius:2px;background:currentColor}
+.vm.u{color:var(--ubuntu);background:var(--accent-soft)}
+.vm.k{color:var(--kali);background:var(--kali-soft)}
+
+/* Step cards */
+.steps{display:grid;gap:14px}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:12px;min-width:0;transition:border-color .2s,opacity .2s}
+.step.done{border-color:var(--ok)}
+.step-top{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.step-title{display:grid;gap:6px;min-width:0;flex:1 1 280px}
+.step h3{font-size:1.12rem;font-weight:600}
+.step h3 b{color:var(--accent);font-weight:800;margin-right:4px}
+.check{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;font-weight:600;color:var(--muted);
+  border:1px solid var(--line);border-radius:99px;padding:6px 12px 6px 8px;user-select:none;background:var(--bg)}
+.check input{appearance:none;width:18px;height:18px;border:2px solid var(--line);border-radius:5px;margin:0;display:grid;place-content:center;background:var(--surface)}
+.check input:checked{background:var(--ok);border-color:var(--ok)}
+.check input:checked::after{content:"";width:9px;height:5px;border:2px solid #fff;border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+.step.done .check{color:var(--ok);border-color:var(--ok);background:var(--ok-soft)}
+.step ul{margin:0;padding-left:1.2em;display:grid;gap:4px}
+.step p,.step li{max-width:64ch}
+
+/* Terminal */
+.term{background:var(--term);color:var(--term-ink);border-radius:12px;overflow:hidden;min-width:0}
+.term-head{display:flex;justify-content:space-between;align-items:center;padding:6px 8px 6px 14px;border-bottom:1px solid rgba(255,255,255,.08)}
+.dots{display:flex;gap:5px}.dots i{width:9px;height:9px;border-radius:50%;background:#33466E}
+.copy{font:600 .78rem var(--body);color:var(--term-ink);background:rgba(255,255,255,.08);border:0;border-radius:8px;padding:6px 10px;cursor:pointer;min-height:32px}
+.copy:hover{background:rgba(255,255,255,.16)}
+.copy.ok{background:var(--ok);color:#fff}
+.term pre{margin:0;padding:12px 14px 14px;overflow-x:auto;font-family:var(--mono);font-size:.86rem;line-height:1.7}
+.term .c{color:var(--term-dim)}
+.term .ip{color:var(--term-ip);font-weight:600}
+
+/* Tables */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--bg)}
+tr:last-child td{border-bottom:0}
+
+/* Decision */
+.decide{display:grid;gap:10px}
+.decide-label{font-weight:700;font-family:var(--display)}
+.options{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.opt{font:inherit;text-align:left;cursor:pointer;background:var(--bg);color:var(--ink);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:4px;min-height:44px}
+.opt:hover{border-color:var(--accent)}
+.opt small{color:var(--muted);font-size:.82rem}
+.opt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.verdict{border-radius:12px;padding:12px 14px;font-weight:600}
+.verdict.a{background:var(--ok-soft);color:var(--ok)}
+.verdict.b{background:var(--kali-soft);color:var(--kali)}
+.verdict.r{background:var(--warn-soft);color:var(--warn)}
+
+/* IP input */
+.ipfield{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ipfield label{font-weight:600;font-size:.92rem}
+.ipfield input{font:500 1rem var(--mono);color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:8px 12px;width:min(100%,220px);min-height:44px}
+.ipfield input:focus{border-color:var(--accent);outline:none}
+.hint{font-size:.85rem;color:var(--muted)}
+
+/* Route switch */
+.switch{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:6px;margin-bottom:14px}
+.switch button{font:600 .95rem var(--body);cursor:pointer;border:0;border-radius:10px;padding:10px 8px;background:transparent;color:var(--muted);display:grid;gap:2px;min-height:44px}
+.switch button span{font-size:.78rem;font-weight:500}
+.switch button[aria-selected="true"]{background:var(--accent);color:#fff}
+.switch button[data-route="B"][aria-selected="true"]{background:var(--kali)}
+.target{display:flex;flex-wrap:wrap;gap:8px;align-items:center;border-radius:12px;padding:12px 14px;background:var(--ok-soft);color:var(--ok);font-weight:600}
+.route-b .target{background:var(--kali-soft);color:var(--kali)}
+
+details{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:0 16px}
+details+details{margin-top:10px}
+summary{cursor:pointer;font-weight:700;font-family:var(--display);padding:14px 0;list-style:none;display:flex;justify-content:space-between;gap:10px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";color:var(--accent);font-size:1.3rem;line-height:1}
+details[open] summary::after{content:"–"}
+details>div{padding-bottom:16px;display:grid;gap:12px}
+
+footer{padding-block:32px 40px;color:var(--muted);font-size:.85rem;text-align:center}
+.reset{font:600 .85rem var(--body);color:var(--muted);background:none;border:1px solid var(--line);border-radius:99px;padding:6px 12px;cursor:pointer;margin-top:8px}
+
+@media (max-width:520px){.sec-head h2{font-size:1.3rem}.step{padding:14px}.term pre{font-size:.8rem}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+html{scroll-behavior:smooth}
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="stack" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="eyebrow">Hacking Ético (Fundamentos) · V2261</div>
+    <h1>Docker paso a paso</h1>
+    <p>Conecta tus VMs, instala Docker y levanta Juice Shop y DVWA. Marca cada paso cuando lo termines; la página recuerda tu avance en este navegador.</p>
+    <div class="note">
+      <strong>Antes de empezar</strong>
+      <span>Las líneas grises que empiezan con <code>#</code> son comentarios: explican el comando. El botón <b>Copiar</b> copia solo los comandos.</span>
+      <span>Cada paso dice en qué máquina se escribe:</span>
+      <div class="legend"><span class="vm u">Ubuntu</span><span class="vm k">Kali</span></div>
+      <span>Todo ocurre solo dentro de tus VMs. Nunca escanees otras IPs.</span>
+    </div>
+  </header>
+
+  <nav class="bar" aria-label="Avance">
+    <div class="progress-row"><span id="progText">0 de 0 pasos</span><div class="meter" aria-hidden="true"><i id="meter"></i></div></div>
+    <div class="pills">
+      <a href="#parte1">1 · ¿Se ven?</a>
+      <a href="#parte2">2 · Docker</a>
+      <a href="#parte3">3 · nmap</a>
+      <a href="#ayuda">Ayuda</a>
+    </div>
+  </nav>
+
+  <!-- PARTE 1 -->
+  <section id="parte1">
+    <div class="sec-head"><span class="sec-num">1</span><h2>¿Tus VMs se ven?</h2></div>
+    <p class="lead">Antes de instalar nada, probamos si Kali puede hablar con el Ubuntu. El resultado decide dónde instalas Docker.</p>
+    <div class="steps">
+      <article class="step" data-step="p1">
+        <div class="step-top"><div class="step-title"><span class="vm u">Ubuntu</span><h3><b>Paso 1.</b> Saca la IP del Ubuntu</h3></div>
+          <label class="check"><input type="checkbox" id="chk-p1">Listo</label></div>
+        <div class="term"><div class="term-head"><div class="dots"><i></i><i></i><i></i></div><button class="copy" type="button">Copiar</button></div>
+<pre><span class="c"># Muestra la IP de esta máquina</span>
+hostname -I</pre></div>
+        <ul><li>Te sale algo como <code>172.16.7.19 172.17.0.1</code>. <b>La primera</b> es la tuya.</li></ul>
+        <div class="ipfield"><label for="ipInput">Escribe aquí tu IP del Ubuntu:</label><input id="ipInput" inputmode="decimal" placeholder="172.16.7.19" autocomplete="off"></div>
+        <p class="hint">Los comandos de esta página se actualizan con tu IP.</p>
+      </article>
+
+      <article class="step" data-step="p2">
+        <div class="step-top"><div class="step-title"><span class="vm u">Ubuntu</span><h3><b>Paso 2.</b> Enciende un servidor de prueba</h3></div>
+          <label class="check"><input type="checkbox" id="chk-p2">Listo</label></div>
+        <div class="term"><div class="term-head"><div class="dots"><i></i><i></i><i></i></div><button class="copy" type="button">Copiar</button></div>
+<pre><span class="c"># Abre una página web sencilla en el puerto 8000</span>
+python3 -m http.server 8000</pre></div>
+        <ul><li>La terminal se queda "ocupada". Es normal: <b>déjala así</b> mientras haces el Paso 3.</li></ul>
+      </article>
+
+      <article class="step" data-step="p3">
+        <div class="step-top"><div class="step-title"><span class="vm k">Kali</span><h3><b>Paso 3.</b> Pide esa página desde Kali</h3></div>
+          <label class="check"><input type="checkbox" id="chk-p3">Listo</label></div>
+        <div class="term"><div class="term-head"><div class="dots"><i></i><i></i><i></i></div><button class="copy" type="button">Copiar</button></div>
+<pre><span class="c"># Pide la página al Ubuntu</span>
+curl http://<span class="ip">IP_UBUNTU</span>:8000</pre></div>
+        <div class="decide">
+          <span class="decide-label">¿Qué viste en Kali?</span>
+          <div class="options" role="group" aria-label="Resultado del curl">
+            <button class="opt" type="button" data-result="A" aria-pressed="false"><b>Texto HTML</b><small>Aparece "Directory listing"</small></button>
+            <button class="opt" type="button" data-result="R" aria-pressed="false"><b>Connection refused</b><small>Responde con ese error</small></button>
+            <button class="opt" type="button" data-result="B" aria-pressed="false"><b>Se queda esperando</b><small>No pasa nada (cancela con Ctrl+C)</small></button>
+          </div>
+          <div class="verdict a" id="v-A" hidden>Tus VMs se ven. Sigue con la Ruta A: Docker en el Ubuntu.</div>
+          <div class="verdict r" id="v-R" hidden>El servidor del Paso 2 no está corriendo. Vuelve a encenderlo y repite este paso.</div>
+          <div class="verdict b" id="v-B" hidden>Tus VMs no se ven. Sigue con la Ruta B: Docker en el Kali.</div>
+        </div>
+      </article>
+
+      <article class="step" data-step="p4">
+        <div class="step-top"><div class="step-title"><span class="vm u">Ubuntu</span><h3><b>Paso 4.</b> Apaga el servidor de prueba</h3></div>
+          <label class="check"><input type="checkbox" id="chk-p4">Listo</label></div>
+        <p>En la terminal ocupada, presiona <code>Ctrl + C</code>.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- PARTE 2 -->
+  <section id="parte2">
+    <div class="sec-head"><span class="sec-num">2</span><h2>Instala Docker y levanta las apps</h2></div>
+    <p class="lead">Elige tu ruta según lo que viste en el Paso 3.</p>
+    <div class="switch" role="tablist" aria-label="Ruta">
+      <button type="button" role="tab" data-route="A" aria-selected="true" id="tabA">Ruta A<span>Se ven · Docker en el Ubuntu</span></button>
+      <button type="button" role="tab" data-route="B" aria-selected="false" id="tabB">Ruta B<span>No se ven · Docker en el Kali</span></button>
+    </div>
+
+    <!-- RUTA A -->
+    <div class="steps route-panel" id="routeA" role="tabpanel" aria-labelledby="tabA">
+      <article class="step" data-step="a1">
+        <div class="step-top"><div class="step-title"><span class="vm u">Ubuntu</span><h3><b>A1.</b> ¿Ya está instalado?</h3></div><label class="check"><input type="checkbox" id="chk-a1">Listo</label></div>
+        <div class="term"><div class="term-head"><div class="dots"><i></i><i></i><i></i></div><button class="copy" type="button">Copiar</button></div>
+<pre>docker --version
+docker compose version</pre></div>
+        <ul><li>Si responde <code>Docker version 27.x.x</code> → ya lo tiene, salta a <b>A3</b>.</li><li>Si dice <code>command not found</code> → sigue con <b>A2</b>.</li></ul>
+      </article>
+      <article class="step" data-step="a2">
+        <div class="step-top"><div class="step-title"><span class="vm u">Ubuntu</span><h3><b>A2.</b> Instálalo (solo si no estaba)</h3></div><label class="check"><input type="checkbox" id="chk-a2">Listo</label></div>
+        <div class="term"><div class="term-head"><div class="dots"><i></i><i></i><i></i></div><button class="copy" type="button">Copiar</button></div>
+<pre><span class="c"># Actualiza la lista de paquetes</span>
+sudo apt update
+
+<span class="c"># Instala curl por si no viene</span>
+sudo apt install -y curl
+
+<span class="c"># Instala Docker con el script oficial (incluye Compose)</span>
+curl -fsSL https://get.docker.com | sudo sh</pre></div>
+        <p>Tarda uno o dos minutos. Al terminar, confirma con <code>docker --version</code>.</p>
+      </article>
+      <article class="step" data-step="a3">
+        <div class="step-top"><div class="step-title"><span class="vm u">Ubuntu</span><h3><b>A3.</b> Verifica que el servicio esté corriendo</h3></div><label class="check"><input type="checkbox" id="chk-a3">Listo</label></div>
+        <div class="term"><div class="term-head"><div class="dots"><i></i><i></i><i></i></div><button class="copy" type="button">Copiar</button></div>
+<pre>sudo systemctl status docker</pre></div>
+        <p>Busca <code>active (running)</code> en verde y sal con la tecla <code>q</code>. Si aparece detenido:</p>
+        <div class="term"><div class="term-head"><div class="dots"><i></i><i></i><i></i></div><button class="copy" type="button">Copiar</button></div>
+<pre>sudo systemctl enable --now docker</pre></div>
+      </article>
+      <article class="step" data-step="a4">
+        <div class="step-top"><div class="step-title"><span class="vm u">Ubuntu</span><h3><b>A4.</b> Úsalo sin sudo</h3></div><label class="check"><input type="checkbox" id="chk-a4">Listo</label></div>
+        <div class="term"><div class="term-head"><div class="dots"><i></i><i></i><i></i></div><button class="copy" type="button">Copiar</button></div>
+<pre><span class="c"># Te da permiso de usar Docker sin escribir sudo</span>
+sudo usermod -aG docker $USER
+
+<span class="c"># Reinicia para que el permiso se aplique</span>
+sudo reboot</pre></div>
+        <p class="hint">En internet verás <code>newgrp docker</code> en lugar de reiniciar. En algunas versiones de Ubuntu no existe; reiniciar siempre funciona.</p>
+      </article>
+      <article class="step" data-step="a5">
+        <div class="step-top"><div class="step-title"><span class="vm u">Ubuntu</span><h3><b>A5.</b> Prueba de humo</h3></div><label class="check"><input type="checkbox" id="chk-a5">Listo</label></div>
+        <div class="term"><div class="term-head"><div class="dots"><i></i><i></i><i></i></div><button class="copy" type="button">Copiar</button></div>
+<pre>docker run hello-world</pre></div>
+        <p>Si ves <b>"Hello from Docker!"</b>, quedó listo.</p>
+      </article>
+      <article class="step" data-step="a6">
+        <div class="step-top"><div class="step-title"><span class="vm u">Ubuntu</span><h3><b>A6.</b> Levanta Juice Shop y DVWA</h3></div><label class="check"><input type="checkbox" id="chk-a6">Listo</label></div>
+        <div class="term"><div class="term-head"><div class="dots"><i></i><i></i><i></i></div><button class="copy" type="button">Copiar</button></div>
+<pre><span class="c"># Juice Shop en el puerto 3000</span>
+docker run -d -p 3000:3000 --name juice bkimminich/juice-shop
+
+<span class="c"># DVWA en el puerto 80</span>
+docker run -d -p 80:80 --name dvwa vulnerables/web-dvwa
+
+<span class="c"># Revisa que las dos estén corriendo (deben decir "Up")</span>
+docker ps</pre></div>
+      </article>
+      <article class="step" data-step="a7">
+        <div class="step-top"><div class="step-title"><span class="vm u">Ubuntu</span> <span class="vm k">Kali</span><h3><b>A7.</b> Ábrelas en el navegador</h3></div><label class="check"><input type="checkbox" id="chk-a7">Listo</label></div>
+        <div class="tbl"><table>
+          <thead><tr><th>Desde</th><th>Juice Shop</th><th>DVWA</th></tr></thead>
+          <tbody>
+            <tr><td><span class="vm u">Ubuntu</span></td><td><code>http://localhost:3000</code></td><td><code>http://localhost</code></td></tr>
+            <tr><td><span class="vm k">Kali</span></td><td><code>http://<span class="ipt">IP_UBUNTU</span>:3000</code></td><td><code>http://<span class="ipt">IP_UBUNTU</span></code></td></tr>
+          </tbody></table></div>
+        <p>En DVWA entra con usuario <code>admin</code> y contraseña <code>password</code>, y da clic en <b>Create / Reset Database</b>.</p>
+        <div class="target">Tu objetivo para nmap: <code class="ipt">IP_UBUNTU</code></div>
+      </article>
+    </div>
+
+    <!-- RUTA B -->
+    <div class="steps route-panel route-b" id="routeB" role="tabpanel" aria-labelledby="tabB" hidden>
+      <article class="step" data-step="b1">
+        <div class="step-top"><div class="step-title"><span class="vm k">Kali</span><h3><b>B1.</b> ¿Ya está instalado?</h3></div><label class="check"><input type="checkbox" id="chk-b1">Listo</label></div>
+        <div class="term"><div class="term-head"><div class="dots"><i></i><i></i><i></i></div><button class="copy" type="button">Copiar</button></div>
+<pre>docker --version</pre></div>
+        <ul><li>Si responde <code>Docker version…</code> → ya lo tiene, salta a <b>B3</b>.</li><li>Si dice <code>command not found</code> → sigue con <b>B2</b>.</li></ul>
+      </article>
+      <article class="step" data-step="b2">
+        <div class="step-top"><div class="step-title"><span class="vm k">Kali</span><h3><b>B2.</b> Instálalo (solo si no estaba)</h3></div><label class="check"><input type="checkbox" id="chk-b2">Listo</label></div>
+        <p>En Kali se instala desde sus propios paquetes; el script de la Ruta A no funciona aquí.</p>
+        <div class="term"><div class="term-head"><div class="dots"><i></i><i></i><i></i></div><button class="copy" type="button">Copiar</button></div>
+<pre><span class="c"># Actualiza la lista de paquetes</span>
+sudo apt update
+
+<span class="c"># Instala Docker</span>
+sudo apt install -y docker.io</pre></div>
+      </article>
+      <article class="step" data-step="b3">
+        <div class="step-top"><div class="step-title"><span class="vm k">Kali</span><h3><b>B3.</b> Enciende el servicio</h3></div><label class="check"><input type="checkbox" id="chk-b3">Listo</label></div>
+        <div class="term"><div class="term-head"><div class="dots"><i></i><i></i><i></i></div><button class="copy" type="button">Copiar</button></div>
+<pre><span class="c"># Arranca Docker ahora y cada vez que prendas Kali</span>
+sudo systemctl enable --now docker
+
+<span class="c"># Revisa que diga active (running) y sal con q</span>
+sudo systemctl status docker</pre></div>
+      </article>
+      <article class="step" data-step="b4">
+        <div class="step-top"><div class="step-title"><span class="vm k">Kali</span><h3><b>B4.</b> Úsalo sin sudo</h3></div><label class="check"><input type="checkbox" id="chk-b4">Listo</label></div>
+        <div class="term"><div class="term-head"><div class="dots"><i></i><i></i><i></i></div><button class="copy" type="button">Copiar</button></div>
+<pre><span class="c"># Te da permiso de usar Docker sin escribir sudo</span>
+sudo usermod -aG docker $USER
+
+<span class="c"># Reinicia para que el permiso se aplique</span>
+sudo reboot</pre></div>
+      </article>
+      <article class="step" data-step="b5">
+        <div class="step-top"><div class="step-title"><span class="vm k">Kali</span><h3><b>B5.</b> Prueba de humo</h3></div><label class="check"><input type="checkbox" id="chk-b5">Listo</label></div>
+        <div class="term"><div class="term-head"><div class="dots"><i></i><i></i><i></i></div><button class="copy" type="button">Copiar</button></div>
+<pre>docker run hello-world</pre></div>
+        <p>Si ves <b>"Hello from Docker!"</b>, quedó listo.</p>
+      </article>
+      <article class="step" data-step="b6">
+        <div class="step-top"><div class="step-title"><span class="vm k">Kali</span><h3><b>B6.</b> Levanta Juice Shop y DVWA</h3></div><label class="check"><input type="checkbox" id="chk-b6">Listo</label></div>
+        <p>Son exactamente los mismos comandos que en el Ubuntu:</p>
+        <div class="term"><div class="term-head"><div class="dots"><i></i><i></i><i></i></div><button class="copy" type="button">Copiar</button></div>
+<pre><span class="c"># Juice Shop en el puerto 3000</span>
+docker run -d -p 3000:3000 --name juice bkimminich/juice-shop
+
+<span class="c"># DVWA en el puerto 80</span>
+docker run -d -p 80:80 --name dvwa vulnerables/web-dvwa
+
+<span class="c"># Revisa que las dos estén corriendo (deben decir "Up")</span>
+docker ps</pre></div>
+      </article>
+      <article class="step" data-step="b7">
+        <div class="step-top"><div class="step-title"><span class="vm k">Kali</span><h3><b>B7.</b> Ábrelas en el navegador de Kali</h3></div><label class="check"><input type="checkbox" id="chk-b7">Listo</label></div>
+        <p>Las apps corren en el mismo Kali, así que las abres con <code>localhost</code> ("esta misma máquina").</p>
+        <ul><li>Juice Shop: <code>http://localhost:3000</code></li><li>DVWA: <code>http://localhost</code> → usuario <code>admin</code>, contraseña <code>password</code> → <b>Create / Reset Database</b></li></ul>
+        <div class="target">Tu objetivo para nmap: <code>localhost</code></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- PARTE 3 -->
+  <section id="parte3">
+    <div class="sec-head"><span class="sec-num">3</span><h2>Comprueba con nmap</h2></div>
+    <p class="lead">Tu objetivo depende de tu ruta. Los comandos ya traen el tuyo: <b id="targetName">la IP del Ubuntu</b>.</p>
+    <div class="steps">
+      <article class="step" data-step="n1">
+        <div class="step-top"><div class="step-title"><span class="vm k">Kali</span><h3><b>N1.</b> ¿Qué puertos tiene abiertos?</h3></div><label class="check"><input type="checkbox" id="chk-n1">Listo</label></div>
+        <div class="term"><div class="term-head"><div class="dots"><i></i><i></i><i></i></div><button class="copy" type="button">Copiar</button></div>
+<pre><span class="c"># Revisa los 1000 puertos más comunes</span>
+nmap <span class="ip tgt">IP_UBUNTU</span></pre></div>
+      </article>
+      <article class="step" data-step="n2">
+        <div class="step-top"><div class="step-title"><span class="vm k">Kali</span><h3><b>N2.</b> ¿Qué servicio hay en cada puerto?</h3></div><label class="check"><input type="checkbox" id="chk-n2">Listo</label></div>
+        <div class="term"><div class="term-head"><div class="dots"><i></i><i></i><i></i></div><button class="copy" type="button">Copiar</button></div>
+<pre><span class="c"># -sV = detecta el servicio y su versión</span>
+nmap -sV <span class="ip tgt">IP_UBUNTU</span></pre></div>
+        <div class="tbl"><table>
+          <thead><tr><th>Puerto</th><th>Servicio</th><th>App</th></tr></thead>
+          <tbody><tr><td><code>80/tcp open</code></td><td>http</td><td>DVWA</td></tr><tr><td><code>3000/tcp open</code></td><td>http (Node.js)</td><td>Juice Shop</td></tr></tbody>
+        </table></div>
+        <p class="hint" id="pnHint">Si dice <code>Host seems down</code>, repite agregando <code>-Pn</code>: <code>nmap -Pn <span class="ipt">IP_UBUNTU</span></code></p>
+      </article>
+    </div>
+  </section>
+
+  <!-- AYUDA -->
+  <section id="ayuda">
+    <div class="sec-head"><span class="sec-num">?</span><h2>Ayuda rápida</h2></div>
+    <p class="lead">Para cuando algo no sale o quieres repasar.</p>
+    <details open><summary>Comandos básicos de Docker</summary><div>
+      <div class="tbl"><table>
+        <thead><tr><th>Comando</th><th>Para qué sirve</th></tr></thead>
+        <tbody>
+          <tr><td><code>docker ps</code></td><td>Ver los contenedores que están corriendo</td></tr>
+          <tr><td><code>docker ps -a</code></td><td>Ver todos, también los detenidos</td></tr>
+          <tr><td><code>docker stop juice</code></td><td>Detener un contenedor</td></tr>
+          <tr><td><code>docker start juice</code></td><td>Volver a arrancarlo</td></tr>
+          <tr><td><code>docker rm -f juice</code></td><td>Borrarlo (para empezar de cero)</td></tr>
+          <tr><td><code>docker logs juice</code></td><td>Ver por qué falló</td></tr>
+        </tbody></table></div>
+    </div></details>
+    <details><summary>Reinicié mi VM y docker ps sale vacío</summary><div>
+      <p>Los contenedores se detienen al reiniciar, pero no se borran y no hay que descargarlos otra vez.</p>
+      <div class="term"><div class="term-head"><div class="dots"><i></i><i></i><i></i></div><button class="copy" type="button">Copiar</button></div>
+<pre><span class="c"># Vuelve a arrancar tus dos apps</span>
+docker start juice dvwa</pre></div>
+    </div></details>
+    <details><summary>Rompí una app</summary><div>
+      <p>Bórrala y créala otra vez. Queda como nueva.</p>
+      <div class="term"><div class="term-head"><div class="dots"><i></i><i></i><i></i></div><button class="copy" type="button">Copiar</button></div>
+<pre><span class="c"># Bórrala</span>
+docker rm -f dvwa
+
+<span class="c"># Créala de nuevo</span>
+docker run -d -p 80:80 --name dvwa vulnerables/web-dvwa</pre></div>
+    </div></details>
+    <details><summary>Me salió un error</summary><div>
+      <div class="tbl"><table>
+        <thead><tr><th>Error</th><th>Solución</th></tr></thead>
+        <tbody>
+          <tr><td><code>permission denied ... docker.sock</code></td><td>Te faltó el paso A4 / B4, o reiniciar</td></tr>
+          <tr><td><code>container name ... already in use</code></td><td>Ya existe: <code>docker rm -f juice</code> y vuelve a crearlo</td></tr>
+          <tr><td><code>port is already allocated</code></td><td>Ese puerto ya está ocupado: revisa <code>docker ps</code></td></tr>
+          <tr><td>El <code>curl</code> del Paso 3 se queda esperando y la IP es correcta</td><td>En el Ubuntu revisa <code>sudo ufw status</code>. Si dice <code>active</code>: <code>sudo ufw allow 8000</code> y repite</td></tr>
+        </tbody></table></div>
+    </div></details>
+  </section>
+
+  <footer>
+    Hacking Ético (Fundamentos) · V2261 · CUGDL – UdeG<br>
+    <button class="reset" type="button" id="resetBtn">Borrar mi avance</button>
+  </footer>
+</div>
+
+<script>
+(function(){
+  const KEY='dockerGuia.v1';
+  let st={done:{},route:'A',ip:'',result:''};
+  try{ const s=JSON.parse(localStorage.getItem(KEY)||'null'); if(s) st=Object.assign(st,s); }catch(e){}
+  const save=()=>{ try{ localStorage.setItem(KEY,JSON.stringify(st)); }catch(e){} };
+
+  const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+
+  // Progress (Part 1 + chosen route + Part 3)
+  function visibleSteps(){ return $$('.step[data-step]').filter(el=>!el.closest('[hidden]')); }
+  function updateProgress(){
+    const vs=visibleSteps(), n=vs.filter(el=>st.done[el.dataset.step]).length;
+    $('#progText').textContent=n+' de '+vs.length+' pasos';
+    $('#meter').style.width=(vs.length? n/vs.length*100:0)+'%';
+  }
+  $$('.step[data-step]').forEach(el=>{
+    const cb=$('input[type=checkbox]',el), id=el.dataset.step;
+    cb.checked=!!st.done[id]; el.classList.toggle('done',cb.checked);
+    cb.addEventListener('change',()=>{ st.done[id]=cb.checked; el.classList.toggle('done',cb.checked); save(); updateProgress(); });
+  });
+
+  // IP substitution
+  const ipInput=$('#ipInput');
+  ipInput.value=st.ip||'';
+  function applyTargets(){
+    const ip=(st.ip||'').trim()||'IP_UBUNTU';
+    $$('.ip:not(.tgt), .ipt').forEach(s=>s.textContent=ip);
+    const tgt= st.route==='B' ? 'localhost' : ip;
+    $$('.tgt').forEach(s=>s.textContent=tgt);
+    $('#targetName').textContent= st.route==='B' ? 'localhost (Ruta B)' : 'la IP del Ubuntu (Ruta A)';
+    $('#pnHint').hidden = st.route==='B';
+  }
+  ipInput.addEventListener('input',()=>{ st.ip=ipInput.value.replace(/[^0-9.]/g,''); if(ipInput.value!==st.ip) ipInput.value=st.ip; save(); applyTargets(); });
+
+  // Route switch
+  function setRoute(r){
+    st.route=r; save();
+    $$('.switch button').forEach(b=>b.setAttribute('aria-selected', b.dataset.route===r ? 'true':'false'));
+    $('#routeA').hidden = r!=='A'; $('#routeB').hidden = r!=='B';
+    applyTargets(); updateProgress();
+  }
+  $$('.switch button').forEach(b=>b.addEventListener('click',()=>setRoute(b.dataset.route)));
+
+  // Decision buttons
+  function showResult(res){
+    st.result=res; save();
+    $$('.opt').forEach(o=>o.setAttribute('aria-pressed', o.dataset.result===res ? 'true':'false'));
+    ['A','R','B'].forEach(k=>$('#v-'+k).hidden = k!==res);
+  }
+  $$('.opt').forEach(o=>o.addEventListener('click',()=>{ const r=o.dataset.result; showResult(r); if(r==='A'||r==='B') setRoute(r); }));
+
+  // Copy: only commands, no comments, no blank lines
+  $$('.term').forEach(t=>{
+    const btn=$('.copy',t), pre=$('pre',t);
+    btn.addEventListener('click',()=>{
+      const text=pre.innerText.split('\n').filter(l=>l.trim() && !l.trim().startsWith('#')).join('\n');
+      const done=()=>{ btn.textContent='Copiado'; btn.classList.add('ok'); setTimeout(()=>{ btn.textContent='Copiar'; btn.classList.remove('ok'); },1600); };
+      const fallback=()=>{ const r=document.createRange(); r.selectNodeContents(pre); const s=getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent='Selecciona y copia'; setTimeout(()=>btn.textContent='Copiar',2200); };
+      try{ navigator.clipboard.writeText(text).then(done,fallback); }catch(e){ fallback(); }
+    });
+  });
+
+  $('#resetBtn').addEventListener('click',()=>{
+    st={done:{},route:'A',ip:'',result:''}; save();
+    $$('.step[data-step]').forEach(el=>{ $('input[type=checkbox]',el).checked=false; el.classList.remove('done'); });
+    ipInput.value=''; showResult(''); setRoute('A');
+  });
+
+  if(st.result) showResult(st.result);
+  setRoute(st.route==='B'?'B':'A');
+})();
+</script>
+
+</body></html>
